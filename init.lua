@@ -91,7 +91,7 @@ vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
 
 -- Set to true if you have a Nerd Font installed and selected in the terminal
-vim.g.have_nerd_font = false
+vim.g.have_nerd_font = true
 
 -- [[ Setting options ]]
 -- See `:help vim.o`
@@ -102,15 +102,13 @@ vim.g.have_nerd_font = false
 vim.o.number = true
 -- You can also add relative line numbers, to help with jumping.
 --  Experiment for yourself to see if you like it!
--- vim.o.relativenumber = true
+vim.o.relativenumber = true
 
 -- Enable mouse mode, can be useful for resizing splits for example!
 vim.o.mouse = 'a'
 
 -- Don't show the mode, since it's already in the status line
-vim.o.showmode = false
-
--- Sync clipboard between OS and Neovim.
+vim.o.showmode = false -- Sync clipboard between OS and Neovim.
 --  Schedule the setting after `UiEnter` because it can increase startup-time.
 --  Remove this option if you want your OS clipboard to remain independent.
 --  See `:help 'clipboard'`
@@ -122,7 +120,8 @@ end)
 vim.o.breakindent = true
 
 -- Save undo history
-vim.o.undofile = true
+-- vim.o.undofile = true
+vim.o.undofile = false
 
 -- Case-insensitive searching UNLESS \C or one or more capital letters in the search term
 vim.o.ignorecase = true
@@ -166,6 +165,13 @@ vim.o.scrolloff = 10
 -- See `:help 'confirm'`
 vim.o.confirm = true
 
+vim.o.tabstop = 4
+vim.o.expandtab = true
+vim.o.softtabstop = 4
+vim.o.shiftwidth = 4
+vim.o.wrap = true
+vim.o.cindent = true
+
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
 
@@ -199,6 +205,7 @@ vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right win
 vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
 vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
 
+
 -- NOTE: Some terminals have colliding keymaps or are not able to send distinct keycodes
 -- vim.keymap.set("n", "<C-S-h>", "<C-w>H", { desc = "Move window to the left" })
 -- vim.keymap.set("n", "<C-S-l>", "<C-w>L", { desc = "Move window to the right" })
@@ -218,6 +225,19 @@ vim.api.nvim_create_autocmd('TextYankPost', {
     vim.hl.on_yank()
   end,
 })
+
+-- Restore cursor to file position in previous editing session
+vim.api.nvim_create_autocmd("BufReadPost", {
+    callback = function(args)
+        local mark = vim.api.nvim_buf_get_mark(args.buf, '"')
+        local line_count = vim.api.nvim_buf_line_count(args.buf)
+        if mark[1] > 0 and mark[1] <= line_count then
+            vim.cmd('normal! g`"zz')
+        end
+    end,
+})
+
+--require("custom.mappings")
 
 -- [[ Install `lazy.nvim` plugin manager ]]
 --    See `:help lazy.nvim.txt` or https://github.com/folke/lazy.nvim for more info
@@ -413,6 +433,17 @@ require('lazy').setup({
         --   },
         -- },
         -- pickers = {}
+        defaults = {
+          mappings = {
+            n = {
+              ['<c-d>'] = require('telescope.actions').delete_buffer
+            }, -- n
+            i = {
+              ["<C-h>"] = "which_key",
+              ['<c-d>'] = require('telescope.actions').delete_buffer
+            } -- i
+          }, -- mappings
+        },
         extensions = {
           ['ui-select'] = {
             require('telescope.themes').get_dropdown(),
@@ -572,6 +603,10 @@ require('lazy').setup({
           --  the definition of its *type*, not where it was *defined*.
           map('grt', require('telescope.builtin').lsp_type_definitions, '[G]oto [T]ype Definition')
 
+          -- Opens a popup that displays documentation about the word under your cursor
+          --  See `:help K` for why this keymap
+          map('K', vim.lsp.buf.hover, 'Hover Documentation')
+
           -- This function resolves a difference between neovim nightly (version 0.11) and stable (version 0.10)
           ---@param client vim.lsp.Client
           ---@param method vim.lsp.protocol.Method
@@ -671,9 +706,9 @@ require('lazy').setup({
       --  - settings (table): Override the default settings passed when initializing the server.
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
       local servers = {
-        -- clangd = {},
+        clangd = {},
         -- gopls = {},
-        -- pyright = {},
+        pyright = {},
         -- rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
@@ -736,7 +771,7 @@ require('lazy').setup({
     end,
   },
 
-  { -- Autoformat
+  --[[{ -- Autoformat
     'stevearc/conform.nvim',
     event = { 'BufWritePre' },
     cmd = { 'ConformInfo' },
@@ -776,6 +811,7 @@ require('lazy').setup({
       },
     },
   },
+  ]]
 
   { -- Autocompletion
     'saghen/blink.cmp',
@@ -876,6 +912,7 @@ require('lazy').setup({
     },
   },
 
+--[[
   { -- You can easily change to a different colorscheme.
     -- Change the name of the colorscheme plugin below, and then
     -- change the command in the config to whatever the name of that colorscheme is.
@@ -895,6 +932,29 @@ require('lazy').setup({
       -- Like many other themes, this one has different styles, and you could load
       -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
       vim.cmd.colorscheme 'tokyonight-night'
+    end,
+  },
+--]]
+
+  { -- You can easily change to a different colorscheme.
+    -- Change the name of the colorscheme plugin below, and then
+    -- change the command in the config to whatever the name of that colorscheme is.
+    --
+    -- If you want to see what colorschemes are already installed, you can use `:Telescope colorscheme`.
+    'ellisonleao/gruvbox.nvim',
+    priority = 1000, -- Make sure to load this before all the other start plugins.
+    config = function()
+      ---@diagnostic disable-next-line: missing-fields
+      require('gruvbox').setup {
+        --styles = {
+        --  comments = { italic = false }, -- Disable italics in comments
+        --},
+      }
+
+      -- Load the colorscheme here.
+      -- Like many other themes, this one has different styles, and you could load
+      -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
+      vim.cmd.colorscheme 'gruvbox'
     end,
   },
 
@@ -963,7 +1023,37 @@ require('lazy').setup({
     --    - Show your current context: https://github.com/nvim-treesitter/nvim-treesitter-context
     --    - Treesitter + textobjects: https://github.com/nvim-treesitter/nvim-treesitter-textobjects
   },
+  {
+    'akinsho/toggleterm.nvim',
+    version = "*",
+    config = function()
+      require("toggleterm").setup({
+        size = function(term)
+          if term.direction == "horizontal" then
+            return 10
+          elseif term.direction == "vertical" then
+            return vim.o.columns * 0.4
+          end
+        end,
+      open_mapping = [[<c-t>]],  -- Change this to your preferred shortcut
+      direction = "horizontal",
+      shade_terminals = false,
+    })
 
+    -- Optional: Keymap to toggle terminal from normal mode
+    vim.keymap.set('n', '<leader>tt', '<cmd>ToggleTerm<cr>', { desc = 'Toggle terminal' })
+    vim.keymap.set('n', '<leader>tv', function()
+        require("toggleterm.terminal").Terminal:new({
+          direction = "vertical",
+          }):toggle()
+        end, { desc = "Vertical terminal" })
+    vim.keymap.set('n', '<leader>tf', function()
+        require("toggleterm.terminal").Terminal:new({
+          direction = "float",
+          }):toggle()
+        end, { desc = "Float terminal" })
+    end
+  },
   -- The following comments only work if you have downloaded the kickstart repo, not just copy pasted the
   -- init.lua. If you want these files, they are in the repository, so you can just download them and
   -- place them in the correct locations.
